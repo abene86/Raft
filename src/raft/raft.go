@@ -51,14 +51,24 @@ type Raft struct {
 	persister *Persister          // Object to hold this peer's persisted state
 	me        int                 // this peer's index into peers[]
 
+	// 1) persistent state on all servers
+	currentTerm int
+	votedFor int
+	// 2) volatile state on all server
+	commandIndex int
+	lastApplied int
+	// 3) volatile state on leaders
+	nextIndex []int{}
+	matchIndex []int{}
+
 	// Your data here (2A, 2B, 2C).
 	// Look at the paper's Figure 2 for a description of what
 	// state a Raft server must maintain.
 
 	// Hint: You can organize the variables into 4 categories:
-	// 1) persistent state on all servers
-	// 2) volatile state on all server
-	// 3) volatile state on leaders
+	
+	
+
 	// 4) Channles for rafts to communicate
 
 }
@@ -124,9 +134,10 @@ func (rf *Raft) readPersist(data []byte) {
 // field names must start with capital letters!
 //
 type RequestVoteArgs struct {
-	// Your data here (2A, 2B).
-	// Hint: paper's Figure 2, RequestVote RPC, Arguments.
-
+	Term int
+	CandidateId int
+	LastLogIndex int
+	LastLogTerm int
 }
 
 //
@@ -134,9 +145,8 @@ type RequestVoteArgs struct {
 // field names must start with capital letters!
 //
 type RequestVoteReply struct {
-	// Your data here (2A).
-	// Hint: paper's Figure 2, RequestVote RPC, Results.
-
+	Term int
+	VoteGranted bool
 }
 
 //
@@ -144,9 +154,12 @@ type RequestVoteReply struct {
 // field names must start with capital letters!
 //
 type AppendEntriesArgs struct {
-	// your data here (2A, 2B).
-	// Hint: paper's Figure 2, AppendEntries RPC, Arguments.
-
+	Term int
+	LeaderId int
+	PrevLogIndex int
+	PrevLogTerm int
+	Entries int[]
+	leaderCommit int
 }
 
 //
@@ -154,9 +167,8 @@ type AppendEntriesArgs struct {
 // field names must start with capital letters!
 //
 type AppendEntriesReply struct {
-	// your data here (2A, 2B).
-	// Hint: paper's Figure 2, AppendEntries RPC, Results.
-
+	Term int
+	Success bool
 }
 
 
