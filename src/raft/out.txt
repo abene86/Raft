@@ -1,0 +1,9 @@
+Test (2A): initial election ...
+labgob warning: Decoding into a non-default variable/field Term may not work
+Term 3
+Term 3
+  ... Passed --   3.4  3 67048    0
+Test (2A): election after network failure ...
+  ... Passed --   6.7  3 94932    0
+PASS
+ok  	raft	10.254s
