@@ -66,8 +66,8 @@ type Raft struct {
 	currentLeaderId int
 	recievedVoteRequest chan int
 	recievedAppendEntries chan int
-	control_1 chan int
-	control_2 chan int
+	resetEvent bool
+	timer *time.Timer
 }
 
 // return currentTerm and whether this server
@@ -157,41 +157,35 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		reply.VoteGranted = false
 		return
 	}	
-		rf.mu.Lock()
-		state := rf.state
-		rf.mu.Unlock()
-	 if(state == "Candidate"){
-		rf.becomeFollower(args.Term)
-		DPrintf("Recieved a vote request from server convert to follower")
-		rf.recievedVoteRequest <- 2
-		return
-	}
-	if(rf.currentLeaderId ==-1 && args.CandidateId != -1){
+	if(args.CandidateId != -1){
+		DPrintf("Before voting Server:%v term:%v votedFor:%v",rf.me, rf.currentTerm, rf.votedFor)
 		reply.Term = args.Term
 		reply.VoteGranted = true
+		DPrintf("After voting Server:%v term:%v votedFor:%v",rf.me, rf.currentTerm, rf.votedFor)
 		rf.votedFor = args.CandidateId
 		rf.currentTerm = args.Term
+		rf.resetEvent = true
+		rf.resetTimer()
+		return
 	}else{
 		reply.Term = args.Term
 		reply.VoteGranted = false
+		return
 	}	
 	
 }
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 	if (args.Term < rf.currentTerm){
-		rf.mu.Lock()
 		reply.Success=false
 		reply.Term=rf.currentTerm
-		rf.mu.Unlock()
 	}else{
-		rf.mu.Lock()
 		reply.Success=true
 		reply.Term = args.Term
 		rf.currentLeaderId = args.LeaderId
 		rf.currentTerm = args.Term
-		rf.mu.Unlock()
 	}
-	rf.recievedAppendEntries <-1
+	rf.resetEvent = true
+	rf.resetTimer()
 }
 
 //
@@ -224,10 +218,6 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 // the struct itself.
 //
 func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *RequestVoteReply) bool {
-	if(rf.state != "Candidate"){
-		return false
-	}
-	DPrintf("Server %v state: %v\n send voterequest server %v", rf.me, rf.state, server)
 	ok := rf.peers[server].Call("Raft.RequestVote", args, reply)
 	if(reply.Term > rf.currentTerm){
 		DPrintf("Stale candidate Server %v current Term: %v reply term: %v\n ", rf.me, rf.currentTerm, reply.Term)
@@ -235,21 +225,18 @@ func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *Reques
 		return false
 	} 
 	if(reply.VoteGranted == true){
-		rf.mu.Lock()
-		rf.numberOfVotesReceived++
+		rf.numberOfVotesReceived= rf.numberOfVotesReceived + 1
+		DPrintf("Server %v number of vote recieved %v", rf.me, rf.numberOfVotesReceived)
 		DPrintf("server: %v vote recieved:%v from %v\n", rf.me, rf.numberOfVotesReceived, server)
-		rf.mu.Unlock()
 	}
+
 	return ok
 }
 
 func (rf *Raft) sendAppendRpc(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool{
-	if(rf.state != "Leader"){
-		return false
-	}
+
 	ok := rf.peers[server].Call("Raft.AppendEntries", args, reply)
 	if(reply.Term > rf.currentTerm){
-		rf.recievedAppendEntries <-1
 		return false
 	}
 	return ok
@@ -274,9 +261,8 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	index := -1
 	term := -1
 	isLeader := true
-
-    rf.mu.Lock()
     defer rf.mu.Unlock()
+	rf.mu.Lock()
 
 	// Your code here (2B).
 	// Hint: only leader is the truth.
@@ -293,6 +279,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 //
 func (rf *Raft) Kill() {
 	// Your code here, if desired.
+	rf.state="Killed"
 }
 
 
@@ -320,6 +307,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.votedFor = -1
 	rf.currentLeaderId=-1
 	rf.numberOfVotesReceived=0
+	rf.resetEvent=false
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
@@ -332,47 +320,39 @@ func Make(peers []*labrpc.ClientEnd, me int,
 
 func runElection(server int, rf *Raft){
 		for{
-			switch rf.state{		
-				case "Leader":
-						time.Tick(10 * time.Millisecond)
-						rf.becomeLeader()
-				case "Follower":
-					select{
-					case <-rf.recievedAppendEntries:
-					case <-time.After(generateRandomMilliSc()* time.Millisecond):
-						rf.mu.Lock()
-						rf.state="Candidate"
-						rf.currentTerm= rf.currentTerm+1
-						rf.votedFor=rf.me
-						rf.mu.Unlock()
-					}						
-				case "Candidate":
-					select{
-						case <-rf.recievedVoteRequest:
-						case <-rf.recievedAppendEntries:
-						default:
-							rf.mu.Lock()
-							count := rf.numberOfVotesReceived
-							rf.mu.Unlock()
-							if(count > len(rf.peers)/2){
-								DPrintf("Server %v won the election", server)
-								rf.mu.Lock()
-								rf.state="Leader"
-								rf.mu.Unlock()
-							}else{
-								DPrintf("Election")
-								time.After(generateRandomMilliSc()* time.Millisecond)
-								rf.beginElectionProcess(server)
-							}
-						}
-			}
+				rf.timer = time.NewTimer(generateRandomMilliSc()* time.Millisecond)
+				DPrintf("Server %v number of vote recieved %v", rf.me, rf.numberOfVotesReceived)
+				if(rf.numberOfVotesReceived > len(rf.peers)/2){
+					DPrintf("Server %v won election %v", rf.me, rf.currentTerm )
+				
+					break;
+				}
+				if(!rf.resetEvent){
+					<- rf.timer.C
+					rf.beginElectionProcess(server)	
+				
+				}else{
+					rf.resetTimer()
+				
+				}					
 		}
+		rf.state = "Leader"
+		rf.becomeLeader()
+}
+func (rf *Raft) resetTimer(){
+	if(rf.resetEvent){
+		//DPrintf("Timer reset")
+		rf.timer.Stop()
+		rf.resetEvent=false
+	
 	}
-
-
+}
 func (rf *Raft) beginElectionProcess(server int){
 	defer rf.mu.Unlock()
 	rf.mu.Lock()
+	rf.state="Candidate"
+	rf.currentTerm= rf.currentTerm+1
+	rf.votedFor=rf.me
 	var args RequestVoteArgs
 	var reply RequestVoteReply
 	DPrintf("Start the election Server %v state: %v", rf.me, rf.state)
@@ -386,26 +366,24 @@ func (rf *Raft) beginElectionProcess(server int){
 }
 
 func (rf *Raft) becomeLeader(){
-		defer rf.mu.Unlock()
-		rf.mu.Lock()
+	state := rf.state
+	for(state == "Leader"){
+		time.Tick(100 * time.Millisecond)
 		var args AppendEntriesArgs
 		var replyargs AppendEntriesReply
-		rf.mu.Lock()
 		args.Term = rf.currentTerm
 		args.LeaderId = rf.me
 		args.PrevLogIndex=-1
 		args.LeaderCommit=-1
 		args.Entries=nil
-		rf.mu.Unlock()
 		for serverIndex, _ := range rf.peers{
 			if(rf.me != serverIndex){
 				go rf.sendAppendRpc(serverIndex, &args, &replyargs)
 			}
 		}
+	}
 }
 func(rf *Raft) becomeFollower(term int){
-  defer rf.mu.Unlock()
-  rf.mu.Lock()
   rf.currentTerm = term
   rf.numberOfVotesReceived=0
   rf.state="Follower"
