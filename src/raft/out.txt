@@ -1,51 +1,9 @@
 Test (2A): initial election ...
-2022/11/05 10:21:10 Server 2 number of vote recieved 0
-2022/11/05 10:21:10 Server 0 number of vote recieved 0
-2022/11/05 10:21:10 Server 1 number of vote recieved 0
-2022/11/05 10:21:10 Start the election Server 2 state: Candidate
-2022/11/05 10:21:10 Server 2 number of vote recieved 0
-2022/11/05 10:21:10 Before voting Server:1 term:0 votedFor:-1
-2022/11/05 10:21:10 After voting Server:1 term:0 votedFor:-1
-2022/11/05 10:21:10 Before voting Server:0 term:0 votedFor:-1
-2022/11/05 10:21:10 After voting Server:0 term:0 votedFor:-1
-2022/11/05 10:21:10 Server 2 number of vote recieved 1
-2022/11/05 10:21:10 server: 2 vote recieved:2 from 0
-2022/11/05 10:21:10 Server 2 number of vote recieved 2
-2022/11/05 10:21:10 server: 2 vote recieved:2 from 1
-2022/11/05 10:21:10 Start the election Server 2 state: Candidate
-2022/11/05 10:21:10 Server 2 number of vote recieved 2
-2022/11/05 10:21:10 Server 2 won election 2
-2022/11/05 10:21:10 Before voting Server:0 term:2 votedFor:2
 labgob warning: Decoding into a non-default variable/field Term may not work
-2022/11/05 10:21:10 After voting Server:0 term:2 votedFor:2
-2022/11/05 10:21:10 Server 2 number of vote recieved 3
-2022/11/05 10:21:10 server: 2 vote recieved:3 from 0
-2022/11/05 10:21:10 Before voting Server:1 term:2 votedFor:2
-2022/11/05 10:21:10 After voting Server:1 term:2 votedFor:2
-2022/11/05 10:21:10 Server 2 number of vote recieved 4
-2022/11/05 10:21:10 server: 2 vote recieved:4 from 1
 Term 2
-Term 2
-  ... Passed --   3.0  3 109527    0
+Term 14
+warning: term changed even though there were no failures  ... Passed --   3.0  5   72    0
 Test (2A): election after network failure ...
-2022/11/05 10:21:13 Server 2 number of vote recieved 0
-2022/11/05 10:21:13 Server 0 number of vote recieved 0
-2022/11/05 10:21:13 Server 1 number of vote recieved 0
-2022/11/05 10:21:13 Start the election Server 0 state: Candidate
-2022/11/05 10:21:13 Server 0 number of vote recieved 0
-2022/11/05 10:21:13 Before voting Server:2 term:0 votedFor:-1
-2022/11/05 10:21:13 After voting Server:2 term:0 votedFor:-1
-2022/11/05 10:21:13 Server 0 number of vote recieved 1
-2022/11/05 10:21:13 server: 0 vote recieved:1 from 2
-2022/11/05 10:21:13 Before voting Server:1 term:0 votedFor:-1
-2022/11/05 10:21:13 After voting Server:1 term:0 votedFor:-1
-2022/11/05 10:21:13 Server 0 number of vote recieved 2
-2022/11/05 10:21:13 server: 0 vote recieved:2 from 1
-2022/11/05 10:21:13 Start the election Server 0 state: Candidate
-2022/11/05 10:21:13 Server 0 number of vote recieved 2
-2022/11/05 10:21:13 Server 0 won election 2
---- FAIL: TestReElection2A (7.78s)
-    config.go:326: expected one leader, got none
-FAIL
-exit status 1
-FAIL	raft	10.857s
+  ... Passed --   4.5  5  188    0
+PASS
+ok  	raft	7.554s
