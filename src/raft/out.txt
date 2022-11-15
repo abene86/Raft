@@ -1,20 +1,11 @@
-Test (2B): basic agreement ...
-panic: runtime error: index out of range [1] with length 1
-
-goroutine 30 [running]:
-raft.(*Raft).AppendEntries(0xc0000d8540, 0xc000216940, 0xc00001e910)
-	/home/agebeyeh/Raft/src/raft/raft.go:179 +0x2a5
-reflect.Value.call(0xc000090240, 0xc000010638, 0x13, 0x5ea7c0, 0x4, 0xc000215bd0, 0x3, 0x3, 0xc000215a98, 0x4d230b, ...)
-	/usr/lib/golang/src/reflect/value.go:476 +0x8e7
-reflect.Value.Call(0xc000090240, 0xc000010638, 0x13, 0xc000215bd0, 0x3, 0x3, 0xc0000a4540, 0x5d7e01, 0xc00007bb78)
-	/usr/lib/golang/src/reflect/value.go:337 +0xb9
-labrpc.(*Service).dispatch(0xc000013c80, 0x5ed62e, 0xd, 0x5b00e0, 0xc00007d7f0, 0x5ed629, 0x12, 0x62a680, 0x5a8c60, 0xc00021e000, ...)
-	/home/agebeyeh/Raft/src/labrpc/labrpc.go:478 +0x674
-labrpc.(*Server).dispatch(0xc00000e738, 0x5b00e0, 0xc00007d7f0, 0x5ed629, 0x12, 0x62a680, 0x5a8c60, 0xc00021e000, 0xdc, 0x109, ...)
-	/home/agebeyeh/Raft/src/labrpc/labrpc.go:402 +0x4b8
-labrpc.(*Network).ProcessReq.func1(0xc00000e738, 0x5b00e0, 0xc00007d7f0, 0x5ed629, 0x12, 0x62a680, 0x5a8c60, 0xc00021e000, 0xdc, 0x109, ...)
-	/home/agebeyeh/Raft/src/labrpc/labrpc.go:229 +0x65
-created by labrpc.(*Network).ProcessReq
-	/home/agebeyeh/Raft/src/labrpc/labrpc.go:228 +0x13e
-exit status 2
-FAIL	raft	0.248s
+Test (2C): basic persistence ...
+labgob warning: Decoding into a non-default variable/field Term may not work
+2022/11/13 12:45:43 The log leader 2 after apending the clients request: [{<nil> 0} {11 1}]
+2022/11/13 12:45:43 NumberofAckReceived 1
+2022/11/13 12:45:43 NumberofAckReceived 2
+2022/11/13 12:45:45 The log leader 2 after apending the clients request: [{<nil> 0} {11 1} {11 1}]
+2022/11/13 12:45:45 NumberofAckReceived 3
+2022/11/13 12:45:45 NumberofAckReceived 4
+2022/11/13 12:45:45 apply error: server 2 apply out of order 2
+exit status 1
+FAIL	raft	2.924s
