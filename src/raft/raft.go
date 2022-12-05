@@ -23,8 +23,8 @@ import "math/rand"
 import "time"
 //import "fmt"
 
-import "bytes"
-import "labgob"
+// import "bytes"
+// import "labgob"
 //import "log"
 // as each Raft peer becomes aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
@@ -98,13 +98,13 @@ func (rf *Raft) GetState() (int, bool) {
 func (rf *Raft) persist() {
 	// Your code here (2C).
 	// Example:
-	w := new(bytes.Buffer)
-	e := labgob.NewEncoder(w)
-	e.Encode(rf.currentTerm)
-	e.Encode(rf.votedFor)
-	e.Encode(rf.log)
-	data := w.Bytes()
-	rf.persister.SaveRaftState(data)
+	// w := new(bytes.Buffer)
+	// e := labgob.NewEncoder(w)
+	// e.Encode(rf.currentTerm)
+	// e.Encode(rf.votedFor)
+	// e.Encode(rf.log)
+	// data := w.Bytes()
+	// rf.persister.SaveRaftState(data)
 }
 
 
@@ -172,6 +172,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		rf.currentTerm = args.Term
 		rf.becomeFollower(rf.currentTerm)
 	}
+	
 	if (rf.votedFor == -1  && (args.LastLogIndex < 0 && args.LastLogTerm == 0 ) || rf.log[args.LastLogIndex].Term == args.LastLogTerm){
 		reply.Term = args.Term
 		reply.VoteGranted = true
@@ -179,7 +180,6 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		rf.currentTerm = args.Term
 		rf.resetEvent = true
 		rf.recievedVoteRequest <-1
-		//rf.resetTimer()
 		return
 	}
 }
@@ -281,7 +281,6 @@ func (rf *Raft) addEntryIfDoesNotExist(prevIndex int, lengthLogRe int, logSender
 func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *RequestVoteReply) bool {
 	ok := rf.peers[server].Call("Raft.RequestVote", args, reply)
 	if(reply.Term > rf.currentTerm){
-		//DPrintf("Stale candidate Server %v current Term: %v reply term: %v\n ", rf.me, rf.currentTerm, reply.Term)
 		rf.becomeFollower(reply.Term)
 		return false
 	} 
@@ -289,11 +288,9 @@ func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *Reques
 	rf.mu.Lock()
 	if(reply.VoteGranted == true){
 		rf.numberOfVotesReceived= rf.numberOfVotesReceived + 1
-		//DPrintf("server: %v vote recieved:%v from %v term%v\n ", rf.me, rf.numberOfVotesReceived, server, rf.currentTerm)
 		if(rf.numberOfVotesReceived > len(rf.peers)/2){
 			rf.state = "Leader"
 			rf.becomeLeader()
-			rf.sendIamLeader <-1
 		}
 	}
 	return ok
@@ -323,9 +320,6 @@ func (rf *Raft) sendAppendRpc(server int, args *AppendEntriesArgs, reply *Append
 	}
 	return ok
 }
-
-
-//
 // the service using Raft (e.g. a k/v server) wants to start
 // agreement on the next command to be appended to Raft's log. if this
 // server isn't the leader, returns false. otherwise start the
@@ -350,7 +344,6 @@ func (rf *Raft) Start(command interface{}) (int, int, bool){
 	newEntry.Term = rf.currentTerm
 	newEntry.Command = command
 	rf.log = append(rf.log,  newEntry)
-	DPrintf("The log leader %v after apending the clients request: %v", rf.me,rf.log)
 	return (len(rf.log)-1), rf.currentTerm, is_leader
 }
 
@@ -366,9 +359,6 @@ func (rf *Raft) Kill() {
 	DPrintf("The server is killed %v", rf.me)
 }
 
-
-
-//
 // the service or tester wants to *create a Raft server*. the ports
 // of all the Raft servers (including this one) are in peers[]. this
 // server's port is peers[me]. all the servers' peers[] arrays
@@ -387,11 +377,9 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.me = me
 	rf.state="Follower"
 	rf.currentTerm = 0
-	rf.log = nil
 	rf.votedFor = -1
 	rf.currentLeaderId=-1
 	rf.numberOfVotesReceived=0
-	rf.resetEvent=false
 	rf.log = []logEntry{}
 	var dummy logEntry
 	dummy.Term = 0
@@ -422,15 +410,14 @@ func runElection(server int, rf *Raft){
 					 rf.becomeLeader()
 				}else{
 					rf.timer = time.NewTimer(generateRandomMilliSc()* time.Millisecond)
-				select{
-					case <-rf.sendIamLeader:
-					case <-rf.recievedVoteRequest:
-						rf.resetTimer()
-					case <-rf.recievedAppendEntries:
-						rf.resetTimer()
-					case <-rf.timer.C:
-						rf.beginElectionProcess(server)
-				}	
+					select{
+						case <-rf.recievedVoteRequest:
+							rf.resetTimer()
+						case <-rf.recievedAppendEntries:
+							rf.resetTimer()
+						case <-rf.timer.C:
+							rf.beginElectionProcess(server)
+					}	
 				}		
 		}
 }
@@ -445,10 +432,8 @@ func (rf *Raft) beginElectionProcess(server int){
 	rf.state="Candidate"
 	rf.currentTerm= rf.currentTerm+1
 	rf.votedFor=rf.me
-	//rf.timer = time.NewTimer(generateRandomMilliSc()* time.Millisecond)
 	var args RequestVoteArgs
 	var reply RequestVoteReply
-	//DPrintf("Start the election Server %v state: %v", rf.me, rf.state)
 	args.Term = rf.currentTerm
 	args.CandidateId =rf.me
 	for serverIndex, _ := range rf.peers {

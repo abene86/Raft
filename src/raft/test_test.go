@@ -128,7 +128,7 @@ func TestFailAgree2B(t *testing.T) {
 
 	// re-connect
 	cfg.connect((leader + 1) % servers)
-    fmt.Printf("server is disconnect and is back on %v", leader+1)
+   // fmt.Printf("server is disconnect and is back on %v", leader+1)
 	// agree with full set of servers?
 	cfg.one(106, servers, true)
 	time.Sleep(RaftElectionTimeout)
